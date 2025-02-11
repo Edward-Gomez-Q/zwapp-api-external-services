@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EnlaceBl {
-    private static final String CANCEL_AND_SUCCESS_URL = "app.pocketbase.io";
+
+    private static final String CANCEL_URL = "https://zwap.dev/payments/cancel";
+    private static final String SUCCESS_URL = "https://zwap.dev/payments/success";
 
     private final LlaveRepository llaveRepository;
     private final EmpresaRepository empresaRepository;
@@ -56,17 +58,11 @@ public class EnlaceBl {
         token = token.replace("Bearer ", "");
         LlaveModel llaveModel = getIdCompanyOrThrow(token);
         EmpresaModel empresaModel = getCompanyOrThrow(llaveModel.getEmpresa());
-        //Completar el id del usuario mas antiguo
         enlacePersonalizadoDto.setUserId(zwappUserRepository.getZwappuserByIdEmpresa(empresaModel.getId())
                 .orElseThrow(() -> new NotFoundException("No se pudo obtener el usuario más antiguo")).getId());
-        //Completar el enlace personalizado
-        enlacePersonalizadoDto.setCancel_url(CANCEL_AND_SUCCESS_URL);
-        enlacePersonalizadoDto.setSuccess_url(CANCEL_AND_SUCCESS_URL);
-        //Completar el metadata
+        if(enlacePersonalizadoDto.getCancel_url().isEmpty()) enlacePersonalizadoDto.setCancel_url(CANCEL_URL);
+        if(enlacePersonalizadoDto.getSuccess_url().isEmpty()) enlacePersonalizadoDto.setSuccess_url(SUCCESS_URL);
         enlacePersonalizadoDto.setMetadata(new EnlacePersonalizadoMetadataDto(empresaModel.getNombre(), empresaModel.getPrincipalContactoCorreo(), empresaModel.getId(),empresaModel.getPrincipalContactoNumero() ));
-
-        System.out.println("enlacePersonalizadoDto: " + enlacePersonalizadoDto);
-        //Crear el enlace
         return linkPagoRepository.createEnlacePersonalizado(enlacePersonalizadoDto)
                 .orElseThrow(() -> new NotFoundException("No se pudo crear el enlace personalizado"));
     }
