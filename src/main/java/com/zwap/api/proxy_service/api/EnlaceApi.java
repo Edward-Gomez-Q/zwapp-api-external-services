@@ -21,7 +21,7 @@ public class EnlaceApi extends BaseController {
         return handleRequest(() -> enlaceBl.getEnlacePermanente(token));
     }
 
-    @PostMapping("/persolalizado")
+    @PostMapping("/personalizado")
     public ResponseEntity<EnlacePersonalizadoResponseDto> getEnlacePersonalizado(@RequestHeader("Authorization")String token, @RequestBody EnlacePersonalizadoDto enlacePersonalizadoDto) {
         return handleRequest(() -> enlaceBl.getEnlacePersonalizado(token, enlacePersonalizadoDto));
     }
