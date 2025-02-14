@@ -17,9 +17,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class EnlaceBl {
 
-    private static final String CANCEL_URL = "https://zwap.dev/payments/cancel";
-    private static final String SUCCESS_URL = "https://zwap.dev/payments/success";
-
     private final LlaveRepository llaveRepository;
     private final EmpresaRepository empresaRepository;
     private final LinkPagoRepository linkPagoRepository;
@@ -60,8 +57,6 @@ public class EnlaceBl {
         EmpresaModel empresaModel = getCompanyOrThrow(llaveModel.getEmpresa());
         enlacePersonalizadoDto.setUserId(zwappUserRepository.getZwappuserByIdEmpresa(empresaModel.getId())
                 .orElseThrow(() -> new NotFoundException("No se pudo obtener el usuario más antiguo")).getId());
-        if(enlacePersonalizadoDto.getCancel_url().isEmpty()) enlacePersonalizadoDto.setCancel_url(CANCEL_URL);
-        if(enlacePersonalizadoDto.getSuccess_url().isEmpty()) enlacePersonalizadoDto.setSuccess_url(SUCCESS_URL);
         enlacePersonalizadoDto.setMetadata(new EnlacePersonalizadoMetadataDto(empresaModel.getNombre(), empresaModel.getPrincipalContactoCorreo(), empresaModel.getId(),empresaModel.getPrincipalContactoNumero() ));
         return linkPagoRepository.createEnlacePersonalizado(enlacePersonalizadoDto)
                 .orElseThrow(() -> new NotFoundException("No se pudo crear el enlace personalizado"));
