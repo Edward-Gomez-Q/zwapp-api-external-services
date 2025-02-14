@@ -51,8 +51,14 @@ public class PocketRealtimeBl {
         } else if (event.containsKey("action") && event.containsKey("record")) {
             RealtimeTransaccionDto transaccion = new RealtimeTransaccionDto();
             transaccion.setAction((String) event.get("action"));
+            if(!transaccion.getAction().equals("update")) {
+                return Mono.empty();
+            }
             transaccion.setRecord(convertToTransaccionModel(event.get("record")));
-            System.out.println("transaccion: " + transaccion);
+            if(transaccion.getRecord().getVoucherUrl() == null || transaccion.getRecord().getCharge() == null) {
+                return Mono.empty();
+            }
+            System.out.println ("Transaccion: " + transaccion);
             transaccionBl.sendEvent(transaccion);
             return Mono.empty();
         } else {
@@ -90,8 +96,8 @@ public class PocketRealtimeBl {
     }
 
     private void reconnect() {
-        System.out.println("Intentando reconectar en 5 segundos...");
-        Mono.delay(Duration.ofSeconds(5))
+        System.out.println("Intentando reconectar en 1 segundos...");
+        Mono.delay(Duration.ofSeconds(1))
                 .doOnTerminate(this::subscribeToPocketBaseRealtime)
                 .subscribe();
     }

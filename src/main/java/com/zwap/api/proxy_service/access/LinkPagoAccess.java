@@ -24,7 +24,6 @@ public class LinkPagoAccess implements LinkPagoRepository {
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<EnlacePersonalizadoResponseDto>() {})
                     .block());
-            System.out.println("response: " + response);
             return response;
         } catch (Exception e) {
             throw new RuntimeException("Error al obtener el enlace personalizado");
