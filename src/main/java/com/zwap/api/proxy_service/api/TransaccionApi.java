@@ -9,21 +9,28 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
-@RequestMapping("")
+@RequestMapping("/api/v1/transaccion")
 public class TransaccionApi extends BaseController{
     private final TransaccionBl transaccionBl;
     public TransaccionApi(TransaccionBl transaccionBl) {
         this.transaccionBl = transaccionBl;
     }
 
-    @PostMapping("/register")
+    @PostMapping("/realtime/register")
     public SseEmitter suscribirse(@RequestHeader("Authorization") String token, @RequestBody RegisterWebHookDto registerWebHookDto) {
         return transaccionBl.suscribirse(token, registerWebHookDto.getUrl());
     }
 
-    @DeleteMapping("/unregister")
+    @DeleteMapping("/realtime/unregister")
     public ResponseEntity<String> desuscribirse(@RequestHeader("Authorization") String token) {
         transaccionBl.desuscribirse(token);
         return ResponseEntity.ok("Desuscripción exitosa");
     }
+
+    /*@GetMapping("/")
+    public ResponseEntity<RealtimeTransaccionDto> getTransacciones(@RequestHeader("Authorization") String token) {
+        return handleRequest(() -> transaccionBl.getTransacciones(token));
+    }*/
+
+
 }

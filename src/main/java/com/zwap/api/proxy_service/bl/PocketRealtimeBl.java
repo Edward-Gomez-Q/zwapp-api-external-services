@@ -26,7 +26,7 @@ public class PocketRealtimeBl {
         this.webClient = webClient;
         this.transaccionBl = transaccionBl;
     }
-    @PostConstruct
+    //@PostConstruct
     public void startRealtimeSubscription() {
         subscribeToPocketBaseRealtime();
     }
