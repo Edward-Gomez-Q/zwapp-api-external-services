@@ -9,14 +9,16 @@ public class EnlacePersonalizadoDto {
     private String recipient;
     private String success_url;
     private String userId;
+    private String tokenGateway;
 
-    public EnlacePersonalizadoDto(String cancel_url, List<EnlacePersonalizadoItemsDto> items, EnlacePersonalizadoMetadataDto metadata, String recipient, String success_url, String userId) {
+    public EnlacePersonalizadoDto(String cancel_url, List<EnlacePersonalizadoItemsDto> items, EnlacePersonalizadoMetadataDto metadata, String recipient, String success_url, String userId, String tokenGateway) {
         this.cancel_url = cancel_url;
         this.items = items;
         this.metadata = metadata;
         this.recipient = recipient;
         this.success_url = success_url;
         this.userId = userId;
+        this.tokenGateway = tokenGateway;
     }
     public EnlacePersonalizadoDto(String recipient, List<EnlacePersonalizadoItemsDto> items) {
         this.recipient = recipient;
@@ -74,6 +76,13 @@ public class EnlacePersonalizadoDto {
         this.userId = userId;
     }
 
+    public String getTokenGateway() {
+        return tokenGateway;
+    }
+    public void setTokenGateway(String tokenGateway) {
+        this.tokenGateway = tokenGateway;
+    }
+
     @Override
     public String toString() {
         return "EnlacePersonalizadoDto{" +
@@ -83,6 +92,7 @@ public class EnlacePersonalizadoDto {
                 ", recipient='" + recipient + '\'' +
                 ", success_url='" + success_url + '\'' +
                 ", userId='" + userId + '\'' +
+                ", token='" + tokenGateway + '\'' +
                 '}';
     }
 }

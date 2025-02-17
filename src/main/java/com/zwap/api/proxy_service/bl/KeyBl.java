@@ -19,6 +19,8 @@ import org.springframework.util.StringUtils;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.naming.ConfigurationException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -44,19 +46,19 @@ public class KeyBl {
         this.llaveRepository = llaveRepository;
     }
 
-    public KeyDto createKey(String companyId, String keyName, String token) {
+    public KeyDto createKey(String companyId, KeyDto keyDto, String token) {
         validateAuthToken(token);
-        validateInputParameters(companyId, keyName);
+        validateInputParameters(companyId, keyDto.getName(), keyDto.getUrl(), keyDto.getType());
         EmpresaModel company = getCompanyOrThrow(companyId);
-        validateKeyCreationConstraints(companyId, keyName);
-        String generatedKey = generateHmacKey(companyId, keyName);
-        LlaveModel savedKey = saveKey(company.getId(), generatedKey, keyName);
+        validateKeyCreationConstraints(companyId, keyDto.getName());
+        String generatedKey = generateHmacKey(companyId, keyDto.getName());
+        LlaveModel savedKey = saveKey(company.getId(), generatedKey, keyDto.getName(), keyDto.getUrl(), keyDto.getType());
         return mapToKeyDto(savedKey);
     }
 
     public List<KeyDto> getKeysForCompany(String companyId, String token) {
         validateAuthToken(token);
-        validateInputParameters(companyId, "");
+        validateInputParameters(companyId, "", "", "");
         getCompanyOrThrow(companyId);
         PocketBaseResponseDto<List<LlaveModel>> response = llaveRepository.findAllKeysById(companyId)
                 .orElseThrow(() -> new GatewayTimeoutException("Failed to retrieve keys"));
@@ -76,12 +78,33 @@ public class KeyBl {
         }
     }
 
-    private void validateInputParameters(String companyId, String keyName) {
+    private void validateInputParameters(String companyId, String keyName, String keyUrl, String keyType) {
         if (!StringUtils.hasText(companyId)) {
             throw new UnprocessableEntityException("Company ID cannot be empty");
         }
-        if (StringUtils.hasText(keyName) && keyName.length() > 50) {
+        if (!StringUtils.hasText(keyName)) {
+            throw new UnprocessableEntityException("Key name is required");
+        }
+        if (keyName.length() > 50) {
             throw new UnprocessableEntityException("Key name cannot exceed 50 characters");
+        }
+        if (StringUtils.hasText(keyUrl) && !isValidBackendUrl(keyUrl)) {
+            throw new UnprocessableEntityException("Invalid URL format");
+        }
+        if (StringUtils.hasText(keyType) && keyType.length() > 50) {
+            throw new UnprocessableEntityException("Key type cannot exceed 50 characters");
+        }
+        if ((StringUtils.hasText(keyUrl) && !StringUtils.hasText(keyType)) ||
+                (!StringUtils.hasText(keyUrl) && StringUtils.hasText(keyType))) {
+            throw new UnprocessableEntityException("Key URL and Key Type must be provided together");
+        }
+    }
+    private boolean isValidBackendUrl(String url) {
+        try {
+            URI uri = new URI(url);
+            return "http".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null && !uri.getHost().isEmpty();
+        } catch (URISyntaxException e) {
+            return false;
         }
     }
 
@@ -127,12 +150,12 @@ public class KeyBl {
         }
     }
 
-    private LlaveModel saveKey(String companyId, String key, String keyName) {
-        return llaveRepository.save(new LlaveModel(companyId, key, keyName))
+    private LlaveModel saveKey(String companyId, String key, String keyName, String url, String tipo) {
+        return llaveRepository.save(new LlaveModel(companyId, key, keyName, url, tipo))
                 .orElseThrow(() -> new GatewayTimeoutException("Failed to save key"));
     }
 
     private KeyDto mapToKeyDto(LlaveModel model) {
-        return new KeyDto(model.getNombre(), model.getLlave(), model.getCreated());
+        return new KeyDto(model.getNombre(), model.getLlave(), model.getUrl(), model.getTipo(), model.getCreated());
     }
 }

@@ -4,7 +4,7 @@ public class TransaccionModel {
     private String collectionId;
     private String collectionName;
     private String sessionId;
-    private String stripeResponse;
+    private Object stripeResponse;
 
 
     private String id;
@@ -27,7 +27,7 @@ public class TransaccionModel {
     private String created;
     private String updated;
 
-    public TransaccionModel(String collectionId, String collectionName, String sessionId, String stripeResponse, String id, Double amount, String empresa, String description, String clientName, String clientEmail, String clientCountry, String currency, String paymentStatus, String paymentLinkId, String createdAt, String paidAt, String paymentIntent, String voucherUrl, String charge, String availableOn, String posPayment, String created, String updated) {
+    public TransaccionModel(String collectionId, String collectionName, String sessionId, Object stripeResponse, String id, Double amount, String empresa, String description, String clientName, String clientEmail, String clientCountry, String currency, String paymentStatus, String paymentLinkId, String createdAt, String paidAt, String paymentIntent, String voucherUrl, String charge, String availableOn, String posPayment, String created, String updated) {
         this.collectionId = collectionId;
         this.collectionName = collectionName;
         this.sessionId = sessionId;
@@ -104,11 +104,11 @@ public class TransaccionModel {
         this.sessionId = sessionId;
     }
 
-    public String getStripeResponse() {
+    public Object getStripeResponse() {
         return stripeResponse;
     }
 
-    public void setStripeResponse(String stripeResponse) {
+    public void setStripeResponse(Object stripeResponse) {
         this.stripeResponse = stripeResponse;
     }
 

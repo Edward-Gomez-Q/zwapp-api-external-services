@@ -1,11 +1,18 @@
 package com.zwap.api.proxy_service.bl;
 
 import com.zwap.api.proxy_service.api.exception.common.UnprocessableEntityException;
+import com.zwap.api.proxy_service.dto.PocketBaseResponseDto;
 import com.zwap.api.proxy_service.dto.RealtimeTransaccionDto;
+import com.zwap.api.proxy_service.model.EmpresaModel;
 import com.zwap.api.proxy_service.model.LlaveModel;
 import com.zwap.api.proxy_service.model.SuscriptorModel;
+import com.zwap.api.proxy_service.model.TransaccionModel;
+import com.zwap.api.proxy_service.repository.EmpresaRepository;
 import com.zwap.api.proxy_service.repository.LlaveRepository;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -16,129 +23,57 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class TransaccionBl {
-    private final Map<String, List<SuscriptorModel>> suscriptores = new ConcurrentHashMap<>();
     private final LlaveRepository llaveRepository;
+    private final Environment environment;
+    private final WebClient webClient;
 
-    public TransaccionBl(LlaveRepository llaveRepository) {
+    public TransaccionBl(LlaveRepository llaveRepository, Environment environment, WebClient webClient) {
         this.llaveRepository = llaveRepository;
+        this.environment = environment;
+        this.webClient = webClient;
     }
 
-    public SseEmitter suscribirse(String token, String webHookUrl) {
-        token = validateAuthToken(token);
-        LlaveModel llave = llaveRepository.findByLlave(token).orElse(null);
-        validateLlave(llave);
-        String idEmpresa = llave.getEmpresa();
-        List<SuscriptorModel> lista = suscriptores.get(idEmpresa);
-        if (lista != null) {
-            throw new UnprocessableEntityException("Ya existe un suscriptor con el token: " + token);
-        }
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-        SuscriptorModel suscriptor = new SuscriptorModel(token, idEmpresa, emitter);
-        suscriptores.computeIfAbsent(idEmpresa, k -> new ArrayList<>()).add(suscriptor);
+    public Boolean recibirTransaccion(String token, TransaccionModel transaccionModel) {
         try {
-            emitter.send(SseEmitter.event()
-                    .name("INIT")
-                    .data("Connected successfully"));
-        } catch (IOException e) {
-            removerSuscriptor(token, idEmpresa);
-            throw new RuntimeException("Error establishing connection", e);
-        }
-        String finalToken = token;
-        emitter.onCompletion(() -> {
-            System.out.println("Connection completed for token: " + finalToken);
-            removerSuscriptor(finalToken, idEmpresa);
-        });
-        emitter.onTimeout(() -> {
-            System.out.println("Connection timed out for token: " + finalToken);
-            removerSuscriptor(finalToken, idEmpresa);
-        });
-        emitter.onError(ex -> {
-            System.out.println("Error in connection for token: " + finalToken + " - " + ex.getMessage());
-            removerSuscriptor(finalToken, idEmpresa);
-        });
-        System.out.println("Suscripción exitosa: " + idEmpresa);
-        return emitter;
-    }
-    private String validateAuthToken(String token) {
-        if (token == null || token.isEmpty()) {
-            throw new UnprocessableEntityException("Token cannot be null or empty");
-        }
-        token = token.replace("Bearer ", "");
-        return token;
-    }
-    private void validateLlave(LlaveModel llave) {
-        if (llave == null) {
-            throw new UnprocessableEntityException("Invalid token");
+            transaccionModel.setStripeResponse(null);
+            //validateTokenWithPriToken(token);
+            System.out.println("Transacción recibida con el siguiente contenido: " + transaccionModel);
+            return sendEventViaHTTP(transaccionModel, "Transacciones");
+        } catch (Exception e) {
+            throw new UnprocessableEntityException("Error al enviar la transacción");
         }
     }
-
-    public void desuscribirse(String token) {
-        token = validateAuthToken(token);
-        LlaveModel llave = llaveRepository.findByLlave(token).orElse(null);
-        validateLlave(llave);
-        String idEmpresa = llave.getEmpresa();
-
-        List<SuscriptorModel> lista = suscriptores.get(idEmpresa);
-        if (lista != null) {
-            String finalToken = token;
-            String finalToken1 = token;
-            lista.stream()
-                    .filter(s -> s.getToken().equals(finalToken))
-                    .findFirst()
-                    .ifPresent(suscriptor -> {
+    @NotNull
+    private Boolean sendEventViaHTTP(TransaccionModel transaccion, String collection) {
+        try{
+            String idEmpresa = transaccion.getEmpresa();
+            PocketBaseResponseDto<List<LlaveModel>> llaves = llaveRepository.findAllKeysById(idEmpresa).orElseThrow(() -> new UnprocessableEntityException("No se pudieron recuperar las llaves"));
+            llaves.getItems().stream()
+                    .filter(llave -> llave.getTipo().equals(collection))
+                    .forEach(llave -> {
                         try {
-                            // Send closing event before completing
-                            suscriptor.getEmitter().send(SseEmitter.event()
-                                    .name("CLOSE")
-                                    .data("Connection closed"));
-                            suscriptor.getEmitter().complete();
-                        } catch (IOException e) {
-                            System.out.println("Error sending close event: " + e.getMessage());
-                        } finally {
-                            removerSuscriptor(finalToken1, idEmpresa);
+                            if (llave.getUrl() == null || llave.getUrl().isEmpty()) {
+                                throw new UnprocessableEntityException("La llave no tiene una URL válida");
+                            }
+                            webClient.post()
+                                    .uri(llave.getUrl())
+                                    .bodyValue(transaccion)
+                                    .retrieve()
+                                    .bodyToMono(TransaccionModel.class)
+                                    .block();
+                        } catch (Exception e) {
+                            throw new UnprocessableEntityException("Error al enviar la transacción a la llave: " + llave.getId());
                         }
                     });
-        } else {
-            throw new UnprocessableEntityException("No existe un suscriptor con el token: " + token);
+            return true;
+        } catch (Exception e) {
+            throw new UnprocessableEntityException("Error al enviar la transacción");
         }
     }
-
-    private void removerSuscriptor(String token, String idEmpresa) {
-        List<SuscriptorModel> lista = suscriptores.get(idEmpresa);
-        if (lista != null) {
-            lista.removeIf(s -> {
-                if (s.getToken().equals(token)) {
-                    try {
-                        s.getEmitter().complete();
-                    } catch (Exception e) {
-                        System.out.println("Error completing emitter: " + e.getMessage());
-                    }
-                    return true;
-                }
-                return false;
-            });
-
-            if (lista.isEmpty()) {
-                suscriptores.remove(idEmpresa);
-            }
-            System.out.println("Suscriptor removido: " + token);
-        }
-    }
-
-    public void sendEvent(RealtimeTransaccionDto transaccion) {
-        List<SuscriptorModel> lista = suscriptores.get(transaccion.getRecord().getEmpresa());
-        if (lista != null) {
-            List<SuscriptorModel> toRemove = new ArrayList<>();
-
-            lista.forEach(s -> {
-                try {
-                    s.getEmitter().send(transaccion);
-                } catch (Exception e) {
-                    System.out.println("Error sending event to " + s.getToken() + ": " + e.getMessage());
-                    toRemove.add(s);
-                }
-            });
-            toRemove.forEach(s -> removerSuscriptor(s.getToken(), s.getIdEmpresa()));
+    private void validateTokenWithPriToken(String token) {
+        String privToken = environment.getProperty("PRIV_KEY");
+        if (!token.equals(privToken)) {
+            throw new UnprocessableEntityException("Invalid token");
         }
     }
 }

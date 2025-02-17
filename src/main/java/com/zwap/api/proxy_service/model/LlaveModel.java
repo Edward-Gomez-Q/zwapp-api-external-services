@@ -7,10 +7,12 @@ public class LlaveModel {
     private String empresa;
     private String llave;
     private String nombre;
+    private String tipo;
     private String created;
     private String updated;
+    private String url;
 
-    public LlaveModel(String collectionId, String collectionName, String id, String empresa, String llave, String nombre, String created, String updated) {
+    public LlaveModel(String collectionId, String collectionName, String id, String empresa, String llave, String nombre, String created, String updated, String url, String tipo) {
         this.collectionId = collectionId;
         this.collectionName = collectionName;
         this.id = id;
@@ -19,12 +21,16 @@ public class LlaveModel {
         this.nombre = nombre;
         this.created = created;
         this.updated = updated;
+        this.url = url;
+        this.tipo = tipo;
     }
 
-    public LlaveModel(String empresa, String llave, String nombre) {
+    public LlaveModel(String empresa, String llave, String nombre, String url, String tipo) {
         this.empresa = empresa;
         this.llave = llave;
         this.nombre = nombre;
+        this.url = url;
+        this.tipo = tipo;
     }
 
     public LlaveModel() {
@@ -94,6 +100,22 @@ public class LlaveModel {
         this.updated = updated;
     }
 
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
     @Override
     public String toString() {
         return "LlaveModel{" +
@@ -105,6 +127,8 @@ public class LlaveModel {
                 ", nombre='" + nombre + '\'' +
                 ", created='" + created + '\'' +
                 ", updated='" + updated + '\'' +
+                ", url='" + url + '\'' +
+                ", tipo='" + tipo + '\'' +
                 '}';
     }
 }

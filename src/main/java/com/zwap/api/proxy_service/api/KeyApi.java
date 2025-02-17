@@ -20,9 +20,9 @@ public class KeyApi extends BaseController {
     //Post para crear un nuevo key
     @PostMapping("/{id}")
     public ResponseEntity<KeyDto> createKey(
+            @RequestHeader("Authorization") String token,
             @PathVariable String id,
-            @RequestParam String nombre,
-            @RequestHeader("Authorization") String token
+            @RequestBody KeyDto nombre
     ) {
         return handleRequest(() -> keyBl.createKey(id, nombre, token));
     }

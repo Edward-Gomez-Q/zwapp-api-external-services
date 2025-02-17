@@ -55,6 +55,7 @@ public class EnlaceBl {
         token = token.replace("Bearer ", "");
         LlaveModel llaveModel = getIdCompanyOrThrow(token);
         EmpresaModel empresaModel = getCompanyOrThrow(llaveModel.getEmpresa());
+        enlacePersonalizadoDto.setTokenGateway(llaveModel.getId());
         enlacePersonalizadoDto.setUserId(zwappUserRepository.getZwappuserByIdEmpresa(empresaModel.getId())
                 .orElseThrow(() -> new NotFoundException("No se pudo obtener el usuario más antiguo")).getId());
         enlacePersonalizadoDto.setMetadata(new EnlacePersonalizadoMetadataDto(empresaModel.getNombre(), empresaModel.getPrincipalContactoCorreo(), empresaModel.getId(),empresaModel.getPrincipalContactoNumero() ));

@@ -18,13 +18,12 @@ public class LinkPagoAccess implements LinkPagoRepository {
     @Override
     public Optional<EnlacePersonalizadoResponseDto> createEnlacePersonalizado(EnlacePersonalizadoDto enlacePersonalizadoDto) {
         try {
-            Optional<EnlacePersonalizadoResponseDto> response = Optional.ofNullable(webClient.post()
+            return Optional.ofNullable(webClient.post()
                     .uri("/api/custom/external/create-checkout")
                     .bodyValue(enlacePersonalizadoDto)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<EnlacePersonalizadoResponseDto>() {})
                     .block());
-            return response;
         } catch (Exception e) {
             throw new RuntimeException("Error al obtener el enlace personalizado");
         }
