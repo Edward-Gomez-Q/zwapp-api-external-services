@@ -1,6 +1,5 @@
 package com.zwap.api.proxy_service.dto;
 
-import java.util.List;
 
 public class PocketBaseResponseDto<T>{
     private int page;

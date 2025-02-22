@@ -45,7 +45,7 @@ public class LlaveAccess implements LlaveRepository {
                     .bodyToMono(LlaveModel.class)
                     .block());
         } catch (Exception e) {
-            return Optional.empty();
+            throw new RuntimeException("Error al guardar la llave: Por favor revise la documentación de la API");
         }
     }
 

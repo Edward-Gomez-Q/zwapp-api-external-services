@@ -27,6 +27,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 
@@ -48,20 +49,21 @@ public class KeyBl {
 
     public KeyDto createKey(String companyId, KeyDto keyDto, String token) {
         validateAuthToken(token);
-        validateInputParameters(companyId, keyDto.getName(), keyDto.getUrl(), keyDto.getType());
+        validateInputParameters(companyId, keyDto.getName(), keyDto.getUrl(), keyDto.getEvents());
         EmpresaModel company = getCompanyOrThrow(companyId);
-        validateKeyCreationConstraints(companyId, keyDto.getName());
+        validateKeyCreationConstraints(companyId, keyDto.getName(), keyDto.getUrl());
         String generatedKey = generateHmacKey(companyId, keyDto.getName());
-        LlaveModel savedKey = saveKey(company.getId(), generatedKey, keyDto.getName(), keyDto.getUrl(), keyDto.getType());
+        LlaveModel savedKey = saveKey(company.getId(), generatedKey, keyDto.getName(), keyDto.getUrl(), keyDto.getEvents());
         return mapToKeyDto(savedKey);
     }
 
     public List<KeyDto> getKeysForCompany(String companyId, String token) {
         validateAuthToken(token);
-        validateInputParameters(companyId, "", "", "");
-        getCompanyOrThrow(companyId);
+        if (!StringUtils.hasText(companyId)) {
+            throw new UnprocessableEntityException("El ID de la compañía no puede ser nulo o vacío");
+        }
         PocketBaseResponseDto<List<LlaveModel>> response = llaveRepository.findAllKeysById(companyId)
-                .orElseThrow(() -> new GatewayTimeoutException("Failed to retrieve keys"));
+                .orElseThrow(() -> new GatewayTimeoutException("No se pudieron recuperar las llaves"));
         return response.getItems().stream()
                 .map(this::mapToKeyDto)
                 .toList();
@@ -69,39 +71,43 @@ public class KeyBl {
 
     private void validateAuthToken(String token) {
         if (token == null || token.isEmpty()) {
-            throw new UnprocessableEntityException("Token cannot be null or empty");
+            throw new UnprocessableEntityException("El token no puede ser nulo o vacío");
         }
         String privToken = environment.getProperty("PRIV_KEY");
         token = token.replace("Bearer ", "");
         if (!token.equals(privToken)) {
-            throw new UnprocessableEntityException("Invalid token");
+            throw new UnprocessableEntityException("Token inválido");
         }
     }
 
-    private void validateInputParameters(String companyId, String keyName, String keyUrl, String keyType) {
+    private void validateInputParameters(String companyId, String keyName, String keyUrl, List<String> keyType) {
         if (!StringUtils.hasText(companyId)) {
-            throw new UnprocessableEntityException("Company ID cannot be empty");
+            throw new UnprocessableEntityException("El ID de la compañía es requerido");
         }
         if (!StringUtils.hasText(keyName)) {
-            throw new UnprocessableEntityException("Key name is required");
+            throw new UnprocessableEntityException("El nombre de la llave es requerido");
         }
         if (keyName.length() > 50) {
-            throw new UnprocessableEntityException("Key name cannot exceed 50 characters");
+            throw new UnprocessableEntityException("El nombre de la llave no puede exceder los 50 caracteres");
         }
-        if (StringUtils.hasText(keyUrl) && !isValidBackendUrl(keyUrl)) {
-            throw new UnprocessableEntityException("Invalid URL format");
+        if (StringUtils.hasText(keyUrl) && !(keyType != null && !keyType.isEmpty())) {
+            throw new UnprocessableEntityException("Cuando se proporciona una URL, se requiere al menos un tipo de evento");
         }
-        if (StringUtils.hasText(keyType) && keyType.length() > 50) {
-            throw new UnprocessableEntityException("Key type cannot exceed 50 characters");
+        if (!StringUtils.hasText(keyUrl) && (keyType != null && !keyType.isEmpty())) {
+            throw new UnprocessableEntityException("Cuando se proporciona al menos un tipo de evento, se requiere una URL");
         }
-        if ((StringUtils.hasText(keyUrl) && !StringUtils.hasText(keyType)) ||
-                (!StringUtils.hasText(keyUrl) && StringUtils.hasText(keyType))) {
-            throw new UnprocessableEntityException("Key URL and Key Type must be provided together");
+        if (keyUrl != null && !isValidBackendUrl(keyUrl)) {
+            throw new UnprocessableEntityException("URL de backend inválida");
         }
+
     }
+
     private boolean isValidBackendUrl(String url) {
         try {
             URI uri = new URI(url);
+            if(Objects.equals(environment.getProperty("ENVIRONMENT"), "prod")) {
+                return "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null && !uri.getHost().isEmpty();
+            }
             return "http".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null && !uri.getHost().isEmpty();
         } catch (URISyntaxException e) {
             return false;
@@ -110,26 +116,29 @@ public class KeyBl {
 
     private EmpresaModel getCompanyOrThrow(String companyId) {
         return empresaRepository.findById(companyId)
-                .orElseThrow(() -> new NotFoundException("Company not found with ID: " + companyId));
+                .orElseThrow(() -> new NotFoundException("Compañia no encontrada con el ID: " + companyId));
     }
 
-    private void validateKeyCreationConstraints(String companyId, String keyName) {
+    private void validateKeyCreationConstraints(String companyId, String keyName, String url) {
         PocketBaseResponseDto<List<LlaveModel>> existingKeys = llaveRepository.findAllKeysById(companyId)
-                .orElseThrow(() -> new GatewayTimeoutException("Failed to retrieve existing keys"));
+                .orElseThrow(() -> new GatewayTimeoutException("Falló al recuperar las llaves"));
 
         if (existingKeys.getItems().stream().anyMatch(key -> key.getNombre().equals(keyName))) {
-            throw new UnprocessableEntityException("A key with this name already exists");
+            throw new UnprocessableEntityException("Ya existe una llave con el nombre proporcionado");
         }
 
         if (existingKeys.getItems().size() >= MAX_KEYS_PER_COMPANY) {
-            throw new UnprocessableEntityException("Maximum number of keys (" + MAX_KEYS_PER_COMPANY + ") reached");
+            throw new UnprocessableEntityException("Máximo número de llaves (" + MAX_KEYS_PER_COMPANY + ") alcanzado");
+        }
+        if (url != null && existingKeys.getItems().stream().anyMatch(key -> key.getUrl().equals(url))) {
+            throw new UnprocessableEntityException("Ya existe una llave con la URL proporcionada");
         }
     }
 
     private String generateHmacKey(String companyId, String keyName) {
         try {
             String masterKey = Optional.ofNullable(environment.getProperty("MASTER_KEY"))
-                    .orElseThrow(() -> new ConfigurationException("MASTER_KEY not configured"));
+                    .orElseThrow(() -> new ConfigurationException("Falló al recuperar la llave maestra"));
 
             String timestamp = Instant.now()
                     .atOffset(ZoneOffset.UTC)
@@ -146,16 +155,16 @@ public class KeyBl {
 
         } catch (Exception e) {
             logger.error("Failed to generate HMAC key", e);
-            throw new BusinessException("Failed to generate key");
+            throw new BusinessException("Falla al generar la llave");
         }
     }
 
-    private LlaveModel saveKey(String companyId, String key, String keyName, String url, String tipo) {
+    private LlaveModel saveKey(String companyId, String key, String keyName, String url, List<String> tipo) {
         return llaveRepository.save(new LlaveModel(companyId, key, keyName, url, tipo))
-                .orElseThrow(() -> new GatewayTimeoutException("Failed to save key"));
+                .orElseThrow(() -> new GatewayTimeoutException("Falló al guardar la llave"));
     }
 
     private KeyDto mapToKeyDto(LlaveModel model) {
-        return new KeyDto(model.getNombre(), model.getLlave(), model.getUrl(), model.getTipo(), model.getCreated());
+        return new KeyDto(model.getNombre(), model.getLlave(), model.getUrl(), model.getEventos(), model.getCreated());
     }
 }

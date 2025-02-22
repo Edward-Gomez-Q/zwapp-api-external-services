@@ -1,5 +1,7 @@
 package com.zwap.api.proxy_service.model;
 
+import java.util.List;
+
 public class LlaveModel {
     private String collectionId;
     private String collectionName;
@@ -7,12 +9,12 @@ public class LlaveModel {
     private String empresa;
     private String llave;
     private String nombre;
-    private String tipo;
+    private List<String> eventos;
     private String created;
     private String updated;
     private String url;
 
-    public LlaveModel(String collectionId, String collectionName, String id, String empresa, String llave, String nombre, String created, String updated, String url, String tipo) {
+    public LlaveModel(String collectionId, String collectionName, String id, String empresa, String llave, String nombre, String created, String updated, String url, List<String> eventos) {
         this.collectionId = collectionId;
         this.collectionName = collectionName;
         this.id = id;
@@ -22,15 +24,15 @@ public class LlaveModel {
         this.created = created;
         this.updated = updated;
         this.url = url;
-        this.tipo = tipo;
+        this.eventos = eventos;
     }
 
-    public LlaveModel(String empresa, String llave, String nombre, String url, String tipo) {
+    public LlaveModel(String empresa, String llave, String nombre, String url, List<String> eventos) {
         this.empresa = empresa;
         this.llave = llave;
         this.nombre = nombre;
         this.url = url;
-        this.tipo = tipo;
+        this.eventos = eventos;
     }
 
     public LlaveModel() {
@@ -108,12 +110,12 @@ public class LlaveModel {
         this.url = url;
     }
 
-    public String getTipo() {
-        return tipo;
+    public List<String> getEventos() {
+        return eventos;
     }
 
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
+    public void setEventos(List<String> eventos) {
+        this.eventos = eventos;
     }
 
     @Override
@@ -128,7 +130,7 @@ public class LlaveModel {
                 ", created='" + created + '\'' +
                 ", updated='" + updated + '\'' +
                 ", url='" + url + '\'' +
-                ", tipo='" + tipo + '\'' +
+                ", tipo='" + eventos + '\'' +
                 '}';
     }
 }

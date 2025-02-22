@@ -47,7 +47,7 @@ public class EnlaceBl {
     }
     private EmpresaModel getCompanyOrThrow(String companyId) {
         return empresaRepository.findById(companyId)
-                .orElseThrow(() -> new NotFoundException("Company not found with ID: " + companyId));
+                .orElseThrow(() -> new NotFoundException("Compañia no encontrada con el ID: " + companyId));
     }
 
     public EnlacePersonalizadoResponseDto getEnlacePersonalizado(String token, EnlacePersonalizadoDto enlacePersonalizadoDto) {

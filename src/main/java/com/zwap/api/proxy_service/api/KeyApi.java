@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RequestMapping("/api/v1/key")
+@RequestMapping("/api/v1/private/key")
 @RestController
 public class KeyApi extends BaseController {
     private final KeyBl keyBl;
@@ -29,7 +29,9 @@ public class KeyApi extends BaseController {
 
     //Get para obtener todos los keys de una empresa
     @GetMapping("/{id}")
-    public ResponseEntity<List<KeyDto>> getKeysById(@PathVariable String id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<List<KeyDto>> getKeysById(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String token) {
         return handleRequest(() -> keyBl.getKeysForCompany(id, token));
     }
 }
