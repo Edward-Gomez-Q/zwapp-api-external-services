@@ -94,6 +94,7 @@ public class TransaccionBl {
 
     private void validateTokenWithPriToken(String token) {
         String privToken = environment.getProperty("PRIV_KEY");
+        token = token.replace("Bearer ", "");
         if (!token.equals(privToken)) {
             throw new UnprocessableEntityException("Invalid token");
         }
