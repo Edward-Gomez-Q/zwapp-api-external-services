@@ -36,7 +36,7 @@ public class TransaccionBl {
     public Boolean recibirTransaccion(String token, TransaccionModel transaccionModel) {
         try {
             transaccionModel.setStripeResponse(null);
-            //validateTokenWithPriToken(token);
+            validateTokenWithPriToken(token);
             return sendEventViaHTTP(transaccionModel, "Transacciones");
         } catch (Exception e) {
             throw new UnprocessableEntityException("Error al enviar la transacción");

@@ -32,9 +32,9 @@ public class TransaccionApi extends BaseController{
     //Reenviar las transacciones a las empresas
     @PostMapping("/private/transaccion/realtime")
     public ResponseEntity<String> recibirTransaccion(
-            //@RequestHeader("Authorization") String token,
+            @RequestHeader("Authorization") String token,
             @RequestBody TransaccionModel transaccionModel) {
-        Boolean request = transaccionBl.recibirTransaccion("", transaccionModel);
+        Boolean request = transaccionBl.recibirTransaccion(token, transaccionModel);
         return request? ResponseEntity.ok("Transaccion recibida"): ResponseEntity.badRequest().body("Transaccion no recibida");
     }
 
