@@ -58,6 +58,7 @@ public class TransaccionBl {
                             }
                             Integer statusCode = webClient.post()
                                     .uri(llave.getUrl())
+                                    .headers(header -> header.remove("Authorization"))
                                     .bodyValue(request)
                                     .exchangeToMono(response -> Mono.just(response.statusCode().value()))
                                     .block();

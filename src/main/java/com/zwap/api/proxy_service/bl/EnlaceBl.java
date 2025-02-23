@@ -52,6 +52,9 @@ public class EnlaceBl {
 
     public EnlacePersonalizadoResponseDto getEnlacePersonalizado(String token, EnlacePersonalizadoDto enlacePersonalizadoDto) {
         validarInputParameters(token);
+        if (enlacePersonalizadoDto.getItems().isEmpty()) {
+            throw new UnprocessableEntityException("El enlace personalizado debe tener al menos un item");
+        }
         token = token.replace("Bearer ", "");
         LlaveModel llaveModel = getIdCompanyOrThrow(token);
         EmpresaModel empresaModel = getCompanyOrThrow(llaveModel.getEmpresa());
