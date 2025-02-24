@@ -37,6 +37,7 @@ public class TransaccionBl {
         try {
             transaccionModel.setStripeResponse(null);
             validateTokenWithPriToken(token);
+            log.info("Transacción recibida");
             return sendEventViaHTTP(transaccionModel, "Transacciones");
         } catch (Exception e) {
             throw new UnprocessableEntityException("Error al enviar la transacción");
@@ -97,6 +98,7 @@ public class TransaccionBl {
         String privToken = environment.getProperty("PRIV_KEY");
         token = token.replace("Bearer ", "");
         if (!token.equals(privToken)) {
+            log.warning("Token inválido al recibir la transacción, error en TransaccionBl");
             throw new UnprocessableEntityException("Invalid token");
         }
     }

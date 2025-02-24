@@ -76,27 +76,34 @@ public class KeyBl {
         String privToken = environment.getProperty("PRIV_KEY");
         token = token.replace("Bearer ", "");
         if (!token.equals(privToken)) {
+            logger.warn("Token inválido al crear la llave");
             throw new UnprocessableEntityException("Token inválido");
         }
     }
 
     private void validateInputParameters(String companyId, String keyName, String keyUrl, List<String> keyType) {
         if (!StringUtils.hasText(companyId)) {
+            logger.error("El ID de la compañía es requerido");
             throw new UnprocessableEntityException("El ID de la compañía es requerido");
         }
         if (!StringUtils.hasText(keyName)) {
+            logger.error("El nombre de la llave es requerido");
             throw new UnprocessableEntityException("El nombre de la llave es requerido");
         }
         if (keyName.length() > 50) {
+            logger.error("El nombre de la llave no puede exceder los 50 caracteres");
             throw new UnprocessableEntityException("El nombre de la llave no puede exceder los 50 caracteres");
         }
         if (StringUtils.hasText(keyUrl) && !(keyType != null && !keyType.isEmpty())) {
+            logger.error("Cuando se proporciona una URL, se requiere al menos un tipo de evento");
             throw new UnprocessableEntityException("Cuando se proporciona una URL, se requiere al menos un tipo de evento");
         }
         if (!StringUtils.hasText(keyUrl) && (keyType != null && !keyType.isEmpty())) {
+            logger.error("Cuando se proporciona al menos un tipo de evento, se requiere una URL");
             throw new UnprocessableEntityException("Cuando se proporciona al menos un tipo de evento, se requiere una URL");
         }
         if (keyUrl != null && !isValidBackendUrl(keyUrl)) {
+            logger.error("URL de backend inválida");
             throw new UnprocessableEntityException("URL de backend inválida");
         }
 
@@ -106,10 +113,13 @@ public class KeyBl {
         try {
             URI uri = new URI(url);
             if(Objects.equals(environment.getProperty("ENVIRONMENT"), "prod")) {
+                logger.info("Validating URL for production environment");
                 return "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null && !uri.getHost().isEmpty();
             }
+            logger.info("Validating URL for non-production environment");
             return "http".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null && !uri.getHost().isEmpty();
         } catch (URISyntaxException e) {
+            logger.error("URL de backend inválida", e);
             return false;
         }
     }
@@ -124,13 +134,16 @@ public class KeyBl {
                 .orElseThrow(() -> new GatewayTimeoutException("Falló al recuperar las llaves"));
 
         if (existingKeys.getItems().stream().anyMatch(key -> key.getNombre().equals(keyName))) {
+            logger.error("Ya existe una llave con el nombre proporcionado");
             throw new UnprocessableEntityException("Ya existe una llave con el nombre proporcionado");
         }
 
         if (existingKeys.getItems().size() >= MAX_KEYS_PER_COMPANY) {
+            logger.error("Máximo número de llaves alcanzado");
             throw new UnprocessableEntityException("Máximo número de llaves (" + MAX_KEYS_PER_COMPANY + ") alcanzado");
         }
         if (url != null && existingKeys.getItems().stream().anyMatch(key -> key.getUrl().equals(url))) {
+            logger.error("Ya existe una llave con la URL proporcionada");
             throw new UnprocessableEntityException("Ya existe una llave con la URL proporcionada");
         }
     }
@@ -151,6 +164,7 @@ public class KeyBl {
             hmac.init(secretKey);
 
             byte[] hmacData = hmac.doFinal(dataToHash.getBytes(StandardCharsets.UTF_8));
+            logger.info("HMAC key generated successfully");
             return Base64.getEncoder().encodeToString(hmacData);
 
         } catch (Exception e) {

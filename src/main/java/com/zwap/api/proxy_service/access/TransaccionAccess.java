@@ -5,6 +5,8 @@ import com.zwap.api.proxy_service.dto.TransactionQueryParams;
 import com.zwap.api.proxy_service.dto.TransactionResponseDto;
 import com.zwap.api.proxy_service.model.TransaccionModel;
 import com.zwap.api.proxy_service.repository.TransaccionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -16,7 +18,7 @@ import java.util.Optional;
 @Repository
 public class TransaccionAccess implements TransaccionRepository {
     private final WebClient webClient;
-
+    private static final Logger log = LoggerFactory.getLogger(TransaccionAccess.class);
     public TransaccionAccess(WebClient webClient) {
         this.webClient = webClient;
     }
@@ -24,7 +26,7 @@ public class TransaccionAccess implements TransaccionRepository {
     @Override
     public Optional<PocketBaseResponseDto<List<TransactionResponseDto>>> findAllTransacciones(String token, TransactionQueryParams params) {
         try {
-            return Optional.ofNullable(webClient.get()
+            Optional<PocketBaseResponseDto<List<TransactionResponseDto>>> response = Optional.ofNullable(webClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/api/collections/transacciones/records")
                             .queryParamIfPresent("page", Optional.ofNullable(params.getPage()))
@@ -36,8 +38,11 @@ public class TransaccionAccess implements TransaccionRepository {
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<PocketBaseResponseDto<List<TransactionResponseDto>>>() {})
                     .block());
+            log.info("Transacciones encontradas: {}", response);
+            return response;
         } catch (WebClientResponseException e) {
-            throw new RuntimeException("Error al obtener las transacciones: " + e.getMessage());
+            log.error("Error al obtener las transacciones: {}", e.getMessage());
+            throw new RuntimeException("Error al obtener las transaccione");
         }
     }
 }
